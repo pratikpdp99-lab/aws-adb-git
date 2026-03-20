@@ -144,3 +144,212 @@ Credentials from `~/.aws/credentials` (IAM user: `claude-adb-tdm-git`, Account: 
 ## Development Context
 - **Remote**: `https://github.com/pratikpdp99-lab/aws-adb-git.git`
 - **Primary branch**: `main`
+
+# Project: tdm-deckers
+
+## Purpose
+Build an enterprise-grade Test Data Management (TDM) platform for retail using Databricks, AWS, GitHub, and a modern frontend.
+
+The platform should support masked data provisioning, synthetic data generation, subsetting, referential integrity, test data request workflows, auditability, lineage, and data cataloging.
+
+## Business Context
+This project is for a retail-oriented TDM platform. Typical business domains include:
+- customer
+- order
+- product
+- inventory
+- store
+- loyalty
+- pricing
+- promotion
+- shipment
+- payment
+
+The platform should support lower environments such as:
+- dev
+- qa
+- uat
+- perf
+
+## Core Capabilities
+1. Ingest source retail data from AWS S3 and other sources
+2. Profile and classify sensitive fields
+3. Apply masking and tokenization rules
+4. Generate synthetic test data for selected domains
+5. Create subset datasets while preserving referential integrity
+6. Provision approved datasets to target environments
+7. Track lineage and metadata using Databricks Unity Catalog
+8. Expose APIs for data request and provisioning workflow
+9. Provide a frontend for request, approval, job tracking, and dataset browsing
+10. Maintain audit logs and role-aware access
+
+## Preferred Technology Stack
+### Data Platform
+- Databricks
+- PySpark
+- Delta Lake
+- Unity Catalog
+- Databricks SQL
+- Databricks Jobs or Databricks Asset Bundles
+
+### Cloud
+- AWS
+- S3
+- IAM
+- Secrets Manager if needed
+
+### Backend
+- Python
+- FastAPI
+- Pydantic
+- SQLAlchemy only if truly needed
+- boto3
+- databricks SDK or connector where appropriate
+
+### Frontend
+- React
+- Next.js preferred
+- TypeScript
+- Tailwind CSS
+- clean enterprise UX
+
+### DevOps
+- GitHub
+- GitHub Actions
+- environment-driven configuration
+- no hardcoded secrets
+
+## Authentication and Environment Rules
+- Never hardcode credentials, tokens, URLs, or secrets
+- Use environment variables, AWS named profiles, and Databricks profiles
+- Assume AWS profile name is `deckers-dev` unless changed in config
+- Use config files and `.env.example`, never commit live secrets
+- Keep `.gitignore` updated for secret-bearing files
+
+## Databricks Design Expectations
+- Use medallion-like layering where useful:
+  - bronze = raw or landed
+  - silver = standardized and masked
+  - gold = provision-ready curated TDM outputs
+- Register important datasets in Unity Catalog
+- Favor transformations that preserve lineage visibility in Databricks
+- Organize jobs, notebooks, and code in a deployable project layout
+- Prefer modular Python packages over large notebooks when possible
+
+## TDM Design Principles
+- Preserve referential integrity across related datasets
+- Support both masked production-like data and fully synthetic data
+- Make masking deterministic where business use requires stable joins
+- Support domain-based extraction and subset filtering
+- Make provisioning reproducible and auditable
+- Allow policy-driven field handling:
+  - mask
+  - tokenize
+  - null out
+  - synthesize
+  - retain if non-sensitive and approved
+
+## API Design Expectations
+The backend should eventually support endpoints for:
+- health
+- list domains
+- profile dataset
+- classify columns
+- submit masking policy
+- request subset dataset
+- request synthetic dataset
+- start provisioning job
+- list job status
+- list available datasets
+- fetch lineage summary
+- fetch audit events
+
+Use clean request and response models.
+Keep API contracts consistent and typed.
+
+## Frontend Expectations
+The frontend should eventually include:
+- landing/dashboard page
+- dataset catalog page
+- request test data form
+- masking policy review page
+- job status page
+- lineage and catalog page
+- admin/settings page
+
+Design should feel like an enterprise internal platform:
+- clear navigation
+- low clutter
+- status visibility
+- auditability
+- searchable lists and tables
+
+## Code Quality Rules
+- Keep modules small and focused
+- Add docstrings for non-trivial logic
+- Add type hints
+- Add tests for backend services and important transformation logic
+- Prefer readable code over overly clever abstractions
+- Do not create large monolithic files
+- Update README files when creating new modules
+
+## Testing Expectations
+Add tests for:
+- masking logic
+- synthetic data generation rules
+- referential integrity checks
+- API request validation
+- service-layer behavior
+- config parsing
+
+## Deliverable Style
+When asked to generate code:
+- first inspect existing project structure
+- follow the repository conventions already present
+- create minimal but working code
+- add TODO comments only where external setup is required
+- provide local run instructions in README
+- do not invent fake secrets or fake production values
+
+## Initial Build Roadmap
+Phase 1:
+- scaffold repository
+- create configuration model
+- add backend skeleton
+- add frontend skeleton
+- add Databricks module skeleton
+- add sample retail domain metadata
+
+Phase 2:
+- build masking engine
+- build synthetic data generator
+- build subset engine
+- build S3 integration
+- build Databricks ingestion and Delta write flows
+
+Phase 3:
+- build request workflow APIs
+- build frontend pages
+- connect frontend to backend
+- add job tracking and audit model
+
+Phase 4:
+- add Unity Catalog integration, lineage views, and deployment workflows
+
+## Important Constraints
+- Do not delete user-authored files unless explicitly asked
+- Do not refactor the whole project unless requested
+- Do not expose secrets in logs or sample code
+- Do not assume production access
+- Use mock or sample data where real data is unavailable
+
+## Preferred Working Pattern
+When implementing a major feature:
+1. inspect repository structure
+2. propose touched files
+3. implement code
+4. add tests
+5. update README or usage instructions
+
+## Primary Goal
+Help build a practical, extensible, enterprise TDM platform that can be demoed, evolved, and deployed incrementally.
