@@ -2,6 +2,8 @@
 Test data request endpoints — submit, approve, and track data requests.
 """
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, HTTPException
 from backend.app.models import DataRequest, DataRequestCreate, DataRequestStatus
 
@@ -24,7 +26,9 @@ def create_request(body: DataRequestCreate):
         domain=body.domain,
         environment=body.environment,
         row_count=body.row_count,
+        purpose=body.purpose,
         status=DataRequestStatus.PENDING,
+        created_at=datetime.now(timezone.utc).isoformat(),
     )
     _REQUESTS[req_id] = req
     return req
