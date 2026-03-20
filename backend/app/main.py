@@ -2,6 +2,7 @@
 
 from fastapi import FastAPI
 from backend.app.routers import datasets, requests, health
+from backend.app.routers import domains, masking, synthetic, jobs, lineage
 
 app = FastAPI(
     title="TDM Deckers API",
@@ -10,5 +11,10 @@ app = FastAPI(
 )
 
 app.include_router(health.router)
-app.include_router(datasets.router, prefix="/datasets", tags=["datasets"])
-app.include_router(requests.router, prefix="/requests", tags=["requests"])
+app.include_router(datasets.router,  prefix="/datasets",  tags=["datasets"])
+app.include_router(requests.router,  prefix="/requests",  tags=["requests"])
+app.include_router(domains.router,   prefix="/domains",   tags=["domains"])
+app.include_router(masking.router,   prefix="/masking",   tags=["masking"])
+app.include_router(synthetic.router, prefix="/synthetic", tags=["synthetic"])
+app.include_router(jobs.router,      prefix="/jobs",      tags=["jobs"])
+app.include_router(lineage.router,   prefix="/lineage",   tags=["lineage"])
