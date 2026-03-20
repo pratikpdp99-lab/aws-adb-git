@@ -1,0 +1,47 @@
+bundle:
+  name: tdm-deckers
+
+variables:
+  env:
+    default: dev
+  catalog:
+    default: tdm_catalog
+  schema:
+    default: tdm_${var.env}
+
+targets:
+  dev:
+    mode: development
+    workspace:
+      host: ${DATABRICKS_HOST}
+    default: true
+
+  staging:
+    workspace:
+      host: ${DATABRICKS_HOST}
+
+  prod:
+    mode: production
+    workspace:
+      host: ${DATABRICKS_HOST}
+
+resources:
+  jobs:
+    tdm_ingest_job:
+      name: tdm-ingest-${var.env}
+      tasks:
+        - task_key: ingest
+          python_wheel_task:
+            package_name: tdm
+            entry_point: ingest
+          job_cluster_key: tdm_cluster
+
+      job_clusters:
+        - job_cluster_key: tdm_cluster
+          new_cluster:
+            spark_version: 15.4.x-scala2.12
+            node_type_id: i3.xlarge
+            num_workers: 2
+            spark_env_vars:
+              DATABRICKS_HOST: ${DATABRICKS_HOST}
+              AWS_REGION: us-east-1

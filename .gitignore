@@ -16,6 +16,13 @@ dist/
 node_modules/
 .next/
 frontend/.env.local
+frontend/.env.local
+
+# Terraform
+infra/**/.terraform/
+infra/**/*.tfstate
+infra/**/*.tfstate.backup
+infra/**/.terraform.lock.hcl
 
 # macOS
 .DS_Store

@@ -29,22 +29,50 @@ Build an enterprise TDM platform for retail on Databricks + AWS.
 
 ```
 backend/
-  app/           FastAPI application code; connection.py is the entry point for all AWS/Databricks clients
-  tests/         pytest tests for API and transformation logic
-  requirements.txt
+  app/
+    main.py          FastAPI entry point — mounts all routers
+    models.py        Pydantic models (Dataset, DataRequest, enums)
+    connection.py    AWS + Databricks client factory
+    routers/
+      health.py      GET /health
+      datasets.py    GET /datasets, GET /datasets/{id}
+      requests.py    POST/GET/PATCH /requests
+  tests/
+  requirements.txt   fastapi, uvicorn, pydantic, databricks-sdk, boto3, pytest
+
 databricks/
-  bundles/       Databricks Asset Bundle (DAB) YAML configs
-  notebooks/     Exploratory and pipeline notebooks
-  src/           PySpark transformation modules
-  tests/         PySpark unit tests
+  bundles/
+    databricks.yml   DAB config — jobs, clusters, dev/staging/prod targets
+  notebooks/
+    explore_source.py  Exploration notebook for bronze/silver tables
+  src/
+    ingest.py        S3 → Bronze Delta (per domain)
+    mask.py          SHA-256 tokenization + redaction of PII fields
+    synthetic.py     Fake record generation per domain
+    subset.py        Referentially consistent subsetting anchored on customer IDs
+  tests/
+    test_mask.py
+    test_synthetic.py
+
 frontend/
-  src/           Next.js pages and components
-  public/        Static assets
-  package.json
+  src/
+    pages/
+      index.tsx      Dataset browser
+      requests.tsx   Test data request form
+    components/
+      DatasetCard.tsx
+  .env.local.example
+  package.json       Next.js 14 + TypeScript
+
 infra/
-  aws/           AWS infrastructure (S3 buckets, IAM, etc.)
-  databricks/    Databricks workspace config
-docs/            Architecture and design docs
+  aws/
+    main.tf          AWS provider config
+    s3.tf            Staged data S3 bucket (versioned + encrypted)
+    iam.tf           IAM policy for Databricks → S3 access
+  databricks/
+    workspace.tf     Databricks provider + Unity Catalog stubs
+
+docs/
 ```
 
 ## Development Setup
@@ -62,17 +90,28 @@ cd frontend && npm install
 ## Commands
 
 ```bash
-# Verify both connections
+# Verify AWS + Databricks connections
 python backend/app/connection.py
 
+# Run FastAPI server
+uvicorn backend.app.main:app --reload --port 8000
+# API docs: http://localhost:8000/docs
+
 # Run backend tests
-pytest backend/tests/
+pytest backend/tests/ -v
+
+# Run Databricks pipeline tests (requires pyspark)
+pytest databricks/tests/ -v
 
 # Run frontend dev server
-cd frontend && npm run dev
+cd frontend && npm install && npm run dev
+# App: http://localhost:3000
 
-# Run frontend build
-cd frontend && npm run build
+# Deploy Databricks Asset Bundle
+databricks bundle deploy --target dev
+
+# Terraform (AWS infra)
+cd infra/aws && terraform init && terraform plan -var="env=dev"
 ```
 
 ## Connections (`backend/app/connection.py`)
