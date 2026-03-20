@@ -26,3 +26,4 @@ infra/**/.terraform.lock.hcl
 
 # macOS
 .DS_Store
+spark-warehouse/
