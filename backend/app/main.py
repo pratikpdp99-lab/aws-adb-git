@@ -1,6 +1,7 @@
 """FastAPI entry point for the TDM platform backend."""
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from backend.app.routers import datasets, requests, health
 from backend.app.routers import domains, masking, synthetic, jobs, lineage
 
@@ -8,6 +9,13 @@ app = FastAPI(
     title="TDM Deckers API",
     description="Test Data Management platform for retail — Databricks + AWS",
     version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(health.router)
