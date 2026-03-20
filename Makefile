@@ -48,10 +48,10 @@ build:                 ## Production build of frontend
 
 # ── Databricks ────────────────────────────────────────────────────────────────
 bundle-deploy-dev:     ## Deploy Databricks Asset Bundle to dev
-	cd databricks && databricks bundle deploy --target dev
+	cd databricks && /opt/homebrew/bin/databricks bundle deploy --target dev
 
 bundle-deploy-staging: ## Deploy Databricks Asset Bundle to staging
-	cd databricks && databricks bundle deploy --target staging
+	cd databricks && /opt/homebrew/bin/databricks bundle deploy --target staging
 
 # ── Infra ─────────────────────────────────────────────────────────────────────
 tf-plan:               ## Terraform plan (AWS infra)

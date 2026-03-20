@@ -1,15 +1,21 @@
 bundle:
   name: tdm-deckers
 
+# Skip local file sync — jobs use git_source instead
+sync:
+  paths: []
+
 variables:
   env:
     default: dev
   catalog:
-    default: tdm_catalog
+    default: workspace
   schema:
     default: tdm_${var.env}
   s3_bucket:
-    default: tdm-deckers-staged-${var.env}
+    default: tdm-deckers-staged-dev
+  git_branch:
+    default: main
 
 targets:
   dev:
@@ -33,6 +39,12 @@ resources:
       name: tdm-full-pipeline-${var.env}
       description: "TDM ingest + DQ + transform pipeline for customer, order, product"
 
+      # Pull source code from the public GitHub repo at job runtime
+      git_source:
+        git_url: https://github.com/pratikpdp99-lab/aws-adb-git
+        git_provider: gitHub
+        git_branch: ${var.git_branch}
+
       tasks:
         - task_key: ingest_customer
           description: "Ingest raw customer CSV from S3 to Bronze Delta"
@@ -42,6 +54,7 @@ resources:
               - "--catalog=${var.catalog}"
               - "--schema=${var.schema}"
               - "--s3-bucket=${var.s3_bucket}"
+              - "--domain=customer"
               - "--skip-catalog"
           job_cluster_key: tdm_cluster
 
@@ -55,6 +68,7 @@ resources:
               - "--catalog=${var.catalog}"
               - "--schema=${var.schema}"
               - "--s3-bucket=${var.s3_bucket}"
+              - "--domain=order"
               - "--skip-catalog"
           job_cluster_key: tdm_cluster
 
@@ -68,6 +82,7 @@ resources:
               - "--catalog=${var.catalog}"
               - "--schema=${var.schema}"
               - "--s3-bucket=${var.s3_bucket}"
+              - "--domain=product"
               - "--skip-catalog"
           job_cluster_key: tdm_cluster
 
@@ -94,7 +109,6 @@ resources:
             spark_conf:
               spark.databricks.delta.preview.enabled: "true"
             spark_env_vars:
-              DATABRICKS_HOST: "{{secrets/tdm/databricks_host}}"
               AWS_REGION: us-east-1
 
       email_notifications:
