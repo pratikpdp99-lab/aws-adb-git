@@ -1,0 +1,21 @@
+# Credentials
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+dist/
+.pytest_cache/
+
+# Databricks
+.databricks/
+
+# Node
+node_modules/
+.next/
+frontend/.env.local
+
+# macOS
+.DS_Store
