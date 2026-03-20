@@ -1,0 +1,11 @@
+customer_id,first_name,last_name,email,phone,created_date
+CUST-001,Alice,Smith,alice.smith@email.com,+1-212-5551234,2023-01-15
+CUST-002,Bob,Johnson,bob.j@email.com,+1-312-5559876,2023-02-20
+CUST-003,Carol,Williams,carol.w@email.com,+1-415-5554567,2023-03-10
+CUST-004,David,Brown,d.brown@email.com,+1-713-5553456,2023-04-05
+CUST-005,Eve,Davis,eve.davis@email.com,+1-617-5552345,2023-05-18
+CUST-006,Frank,Miller,f.miller@email.com,+1-206-5556789,2023-06-22
+CUST-007,Grace,Wilson,grace.w@email.com,+1-303-5554321,2023-07-30
+CUST-008,Henry,Moore,h.moore@email.com,+1-404-5557654,2023-08-14
+CUST-009,Iris,Taylor,iris.t@email.com,+1-512-5558901,2023-09-09
+CUST-010,Jack,Anderson,jack.a@email.com,+1-702-5553210,2023-10-25

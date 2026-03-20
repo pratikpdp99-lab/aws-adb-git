@@ -8,6 +8,8 @@ variables:
     default: tdm_catalog
   schema:
     default: tdm_${var.env}
+  s3_bucket:
+    default: tdm-deckers-staged-${var.env}
 
 targets:
   dev:
@@ -19,21 +21,73 @@ targets:
   staging:
     workspace:
       host: ${DATABRICKS_HOST}
+    variables:
+      env: staging
 
   prod:
     mode: production
     workspace:
       host: ${DATABRICKS_HOST}
+    variables:
+      env: prod
 
 resources:
   jobs:
-    tdm_ingest_job:
-      name: tdm-ingest-${var.env}
+
+    # ── Full pipeline job ────────────────────────────────────────────────────
+    tdm_full_pipeline:
+      name: tdm-full-pipeline-${var.env}
+      description: "TDM ingest + DQ + transform pipeline for customer, order, product"
+
       tasks:
-        - task_key: ingest
-          python_wheel_task:
-            package_name: tdm
-            entry_point: ingest
+        - task_key: ingest_customer
+          description: "Ingest raw customer CSV from S3 to Bronze Delta"
+          spark_python_task:
+            python_file: databricks/src/pipeline.py
+            parameters:
+              - "--catalog=${var.catalog}"
+              - "--schema=${var.schema}"
+              - "--s3-bucket=${var.s3_bucket}"
+              - "--skip-catalog"
+          job_cluster_key: tdm_cluster
+
+        - task_key: ingest_order
+          description: "Ingest raw order CSV from S3 to Bronze Delta"
+          depends_on:
+            - task_key: ingest_customer
+          spark_python_task:
+            python_file: databricks/src/pipeline.py
+            parameters:
+              - "--catalog=${var.catalog}"
+              - "--schema=${var.schema}"
+              - "--s3-bucket=${var.s3_bucket}"
+              - "--skip-catalog"
+          job_cluster_key: tdm_cluster
+
+        - task_key: ingest_product
+          description: "Ingest raw product CSV from S3 to Bronze Delta"
+          depends_on:
+            - task_key: ingest_customer
+          spark_python_task:
+            python_file: databricks/src/pipeline.py
+            parameters:
+              - "--catalog=${var.catalog}"
+              - "--schema=${var.schema}"
+              - "--s3-bucket=${var.s3_bucket}"
+              - "--skip-catalog"
+          job_cluster_key: tdm_cluster
+
+        - task_key: register_catalog
+          description: "Register all Silver tables in Unity Catalog with PII tags"
+          depends_on:
+            - task_key: ingest_order
+            - task_key: ingest_product
+          spark_python_task:
+            python_file: databricks/src/pipeline.py
+            parameters:
+              - "--catalog=${var.catalog}"
+              - "--schema=${var.schema}"
+              - "--s3-bucket=${var.s3_bucket}"
           job_cluster_key: tdm_cluster
 
       job_clusters:
@@ -42,6 +96,18 @@ resources:
             spark_version: 15.4.x-scala2.12
             node_type_id: i3.xlarge
             num_workers: 2
+            data_security_mode: SINGLE_USER
+            spark_conf:
+              spark.databricks.delta.preview.enabled: "true"
             spark_env_vars:
-              DATABRICKS_HOST: ${DATABRICKS_HOST}
+              DATABRICKS_HOST: "{{secrets/tdm/databricks_host}}"
               AWS_REGION: us-east-1
+
+      email_notifications:
+        on_failure:
+          - "stub@example.com"  # replace with real alert email
+
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"   # daily at 06:00 UTC
+        timezone_id: UTC
+        pause_status: PAUSED  # unpause when ready for scheduled runs

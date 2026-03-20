@@ -1,0 +1,11 @@
+product_id,name,category,price,in_stock
+PROD-001,Running Shoes X,Footwear,89.99,true
+PROD-002,Trail Runners Pro,Footwear,129.99,true
+PROD-003,Casual Sneakers,Footwear,59.99,false
+PROD-004,Performance Socks,Accessories,14.99,true
+PROD-005,Insoles Comfort Plus,Accessories,24.99,true
+PROD-006,Waterproof Jacket,Outerwear,149.99,true
+PROD-007,Compression Shorts,Apparel,39.99,true
+PROD-008,Sports Backpack,Bags,79.99,false
+PROD-009,Fitness Tracker Band,Electronics,59.99,true
+PROD-010,Yoga Mat Pro,Equipment,49.99,true
