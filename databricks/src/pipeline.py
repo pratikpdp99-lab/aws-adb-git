@@ -106,6 +106,10 @@ def _parse_args():
     p.add_argument("--s3-bucket",  default="tdm-deckers-staged-dev")
     p.add_argument("--skip-dq-fail",  action="store_true")
     p.add_argument("--skip-catalog",  action="store_true")
+    # AWS credentials — used on Databricks serverless where no instance profile exists
+    p.add_argument("--aws-access-key-id",     default="")
+    p.add_argument("--aws-secret-access-key", default="")
+    p.add_argument("--aws-region",            default="us-east-1")
     return p.parse_args()
 
 
@@ -133,6 +137,12 @@ def _configure_s3(spark: SparkSession) -> None:
 if __name__ == "__main__":
     args = _parse_args()
     spark = SparkSession.builder.appName("tdm-pipeline").getOrCreate()
+    # Inject CLI-supplied credentials into env so _configure_s3 picks them up
+    import os
+    if args.aws_access_key_id:
+        os.environ["AWS_ACCESS_KEY_ID"]     = args.aws_access_key_id
+        os.environ["AWS_SECRET_ACCESS_KEY"] = args.aws_secret_access_key
+        os.environ["AWS_DEFAULT_REGION"]    = args.aws_region
     _configure_s3(spark)
     s3_paths = {
         "customer": f"s3://{args.s3_bucket}/raw/customer/",
