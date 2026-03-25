@@ -109,9 +109,31 @@ def _parse_args():
     return p.parse_args()
 
 
+def _configure_s3(spark: SparkSession) -> None:
+    """
+    Configure S3A credentials from environment variables when running on
+    Databricks serverless (no instance profile).  No-op if already configured
+    via an instance profile or Unity Catalog external location.
+    """
+    import os
+    access_key = os.environ.get("AWS_ACCESS_KEY_ID", "")
+    secret_key  = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
+    region      = os.environ.get("AWS_DEFAULT_REGION") or os.environ.get("AWS_REGION", "us-east-1")
+    if access_key and secret_key:
+        spark.conf.set("spark.hadoop.fs.s3a.access.key",            access_key)
+        spark.conf.set("spark.hadoop.fs.s3a.secret.key",            secret_key)
+        spark.conf.set("spark.hadoop.fs.s3a.endpoint.region",       region)
+        spark.conf.set("spark.hadoop.fs.s3a.aws.credentials.provider",
+                       "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
+        spark.conf.set("spark.hadoop.fs.s3a.impl",
+                       "org.apache.hadoop.fs.s3a.S3AFileSystem")
+        print(f"[s3] Configured S3A credentials from environment (region={region})")
+
+
 if __name__ == "__main__":
     args = _parse_args()
     spark = SparkSession.builder.appName("tdm-pipeline").getOrCreate()
+    _configure_s3(spark)
     s3_paths = {
         "customer": f"s3://{args.s3_bucket}/raw/customer/",
         "order":    f"s3://{args.s3_bucket}/raw/order/",
