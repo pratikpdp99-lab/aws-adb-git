@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import type { User } from "../types";
 import {
   LayoutDashboard, DatabaseZap, Inbox, Briefcase,
-  Network, ShieldCheck, LogOut, ChevronRight,
+  Network, ShieldCheck, LogOut, ChevronRight, BarChart3,
 } from "lucide-react";
 
 interface NavItem {
@@ -16,6 +16,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { href: "/",        label: "Dashboard",    icon: <LayoutDashboard size={18} /> },
   { href: "/catalog", label: "Data Catalog", icon: <DatabaseZap size={18} />    },
+  { href: "/compare", label: "Compare & Rec",icon: <BarChart3 size={18} />      },
   { href: "/requests",label: "Requests",     icon: <Inbox size={18} />          },
   { href: "/jobs",    label: "Jobs",         icon: <Briefcase size={18} />      },
   { href: "/lineage", label: "Lineage",      icon: <Network size={18} />        },

@@ -1,3 +1,66 @@
+// ── Deckers D2C Products ───────────────────────────────────────────────────────
+export type DeckersBrand = "UGG" | "HOKA" | "Teva" | "Sanuk" | "Koolaburra";
+export type ProductCategory =
+  | "boots" | "sneakers" | "sandals" | "slippers"
+  | "trail" | "road_running" | "casual" | "hiking";
+
+export interface DeckersProduct {
+  product_id:           string;
+  brand:                DeckersBrand;
+  name:                 string;
+  category:             ProductCategory;
+  price:                number;
+  msrp:                 number;
+  rating:               number;
+  review_count:         number;
+  in_stock:             boolean;
+  colors_available:     number;
+  features:             string[];
+  use_cases:            string[];
+  best_for:             string[];
+  seasons:              string[];
+  gender:               string;
+  sustainability_score: number;
+  d2c_exclusive:        boolean;
+  return_rate_pct:      number;
+  channel:              string;
+}
+
+export interface ComparisonRow {
+  attribute:     string;
+  values:        Record<string, string>;
+  winner?:       string;
+  winner_reason?: string;
+}
+
+export interface CompareResult {
+  products:              DeckersProduct[];
+  matrix:                ComparisonRow[];
+  recommended_winner:    string;
+  recommendation_reason: string;
+}
+
+export interface RecommendRequest {
+  based_on_product_id?: string;
+  budget_max?:          number;
+  activity?:            string;
+  season?:              string;
+  gender?:              string;
+  customer_segment?:    string;
+}
+
+export interface RecommendedProduct {
+  product:       DeckersProduct;
+  score:         number;
+  match_reasons: string[];
+}
+
+export interface RecommendResult {
+  based_on?:       string;
+  recommendations: RecommendedProduct[];
+  context_summary: string;
+}
+
 // ── Auth ───────────────────────────────────────────────────────────────────────
 export interface User {
   name: string;

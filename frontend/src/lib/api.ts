@@ -14,10 +14,12 @@ import api from "./client";
 import type {
   Domain, Dataset, DataRequest, JobRun, MaskingPolicy,
   TableLineage, MaskingStrategy,
+  DeckersProduct, CompareResult, RecommendRequest, RecommendResult,
 } from "../types";
 import {
   MOCK_DOMAINS, MOCK_DATASETS, MOCK_REQUESTS,
   MOCK_JOBS, MOCK_POLICIES, MOCK_LINEAGE,
+  MOCK_PRODUCTS, MOCK_RECOMMEND_RESULT,
 } from "./mock";
 
 // ── Domains ────────────────────────────────────────────────────────────────────
@@ -156,4 +158,74 @@ export async function fetchLineage(domain: string): Promise<TableLineage> {
   });
   if (error || !data) return MOCK_LINEAGE[domain] ?? MOCK_LINEAGE["customer"];
   return data as TableLineage;
+}
+
+// ── Deckers D2C Products ───────────────────────────────────────────────────────
+
+export async function fetchProducts(filters?: {
+  brand?: string; category?: string; gender?: string; in_stock?: boolean;
+}): Promise<DeckersProduct[]> {
+  // openapi-fetch doesn't yet have /products/ in the generated spec, so we call
+  // the backend directly via fetch and fall back to mock on any error.
+  try {
+    const params = new URLSearchParams();
+    if (filters?.brand)    params.set("brand",    filters.brand);
+    if (filters?.category) params.set("category", filters.category);
+    if (filters?.gender)   params.set("gender",   filters.gender);
+    if (filters?.in_stock !== undefined) params.set("in_stock", String(filters.in_stock));
+    const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+    const res  = await fetch(`${BASE}/products/?${params.toString()}`);
+    if (!res.ok) return MOCK_PRODUCTS;
+    const json = await res.json();
+    return (json.products ?? json) as DeckersProduct[];
+  } catch {
+    return MOCK_PRODUCTS;
+  }
+}
+
+export async function compareProducts(productIds: string[]): Promise<CompareResult> {
+  try {
+    const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+    const res  = await fetch(`${BASE}/products/compare`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ product_ids: productIds }),
+    });
+    if (!res.ok) throw new Error("compare failed");
+    return (await res.json()) as CompareResult;
+  } catch {
+    // Mock fallback: build a minimal CompareResult from selected mock products
+    const selected = MOCK_PRODUCTS.filter((p) => productIds.includes(p.product_id));
+    const winner   = selected.reduce((a, b) => (a.rating >= b.rating ? a : b));
+    return {
+      products: selected,
+      matrix: [
+        { attribute: "price",    values: Object.fromEntries(selected.map((p) => [p.product_id, `$${p.price}` ])) },
+        { attribute: "rating",   values: Object.fromEntries(selected.map((p) => [p.product_id, `${p.rating}★`])), winner: winner.product_id },
+        { attribute: "in_stock", values: Object.fromEntries(selected.map((p) => [p.product_id, p.in_stock ? "Yes" : "No"])) },
+        { attribute: "gender",   values: Object.fromEntries(selected.map((p) => [p.product_id, p.gender])) },
+        { attribute: "seasons",  values: Object.fromEntries(selected.map((p) => [p.product_id, p.seasons.join(", ")])) },
+        { attribute: "sustainability_score", values: Object.fromEntries(selected.map((p) => [p.product_id, `${p.sustainability_score}/100`])) },
+        { attribute: "return_rate_pct",      values: Object.fromEntries(selected.map((p) => [p.product_id, `${p.return_rate_pct}%`])) },
+        { attribute: "colors_available",     values: Object.fromEntries(selected.map((p) => [p.product_id, String(p.colors_available)])) },
+      ],
+      recommended_winner:    winner.product_id,
+      recommendation_reason: `${winner.name} earns the top spot with ${winner.rating}★ rating across ${winner.review_count.toLocaleString()} reviews.`,
+    };
+  }
+}
+
+export async function getRecommendations(req: RecommendRequest): Promise<RecommendResult> {
+  try {
+    const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+    const res  = await fetch(`${BASE}/products/recommendations`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify(req),
+    });
+    if (!res.ok) throw new Error("recommend failed");
+    return (await res.json()) as RecommendResult;
+  } catch {
+    return MOCK_RECOMMEND_RESULT;
+  }
 }

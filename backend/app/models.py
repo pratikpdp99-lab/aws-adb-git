@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 from pydantic import BaseModel
 
 
@@ -209,3 +209,94 @@ class TableLineage(BaseModel):
     edges:           list[LineageEdge]
     columns:         list[ColumnLineage]
     pipeline_run_id: Optional[str] = None
+
+
+# ── Deckers D2C Product Catalog ───────────────────────────────────────────────
+
+class DeckersBrand(str, Enum):
+    UGG        = "UGG"
+    HOKA       = "HOKA"
+    TEVA       = "Teva"
+    SANUK      = "Sanuk"
+    KOOLABURRA = "Koolaburra"
+
+
+class ProductCategory(str, Enum):
+    BOOTS        = "boots"
+    SNEAKERS     = "sneakers"
+    SANDALS      = "sandals"
+    SLIPPERS     = "slippers"
+    TRAIL        = "trail"
+    ROAD_RUNNING = "road_running"
+    CASUAL       = "casual"
+    HIKING       = "hiking"
+
+
+class DeckersProduct(BaseModel):
+    product_id:           str
+    brand:                DeckersBrand
+    name:                 str
+    category:             ProductCategory
+    price:                float
+    msrp:                 float
+    rating:               float          # 0.0 – 5.0
+    review_count:         int
+    in_stock:             bool
+    colors_available:     int
+    features:             list[str]
+    use_cases:            list[str]
+    best_for:             list[str]
+    seasons:              list[str]
+    gender:               str            # "men" | "women" | "unisex"
+    sustainability_score: int            # 0–100
+    d2c_exclusive:        bool
+    return_rate_pct:      float
+    channel:              str = "D2C"
+
+
+class DeckersProductList(BaseModel):
+    products: list[DeckersProduct]
+    total:    int
+
+
+# ── Product Comparison ────────────────────────────────────────────────────────
+
+class CompareRequest(BaseModel):
+    product_ids: list[str]               # 2 – 4 items
+
+
+class ComparisonRow(BaseModel):
+    attribute:     str
+    values:        dict[str, Any]        # product_id → value
+    winner:        Optional[str] = None  # product_id of winner
+    winner_reason: Optional[str] = None
+
+
+class CompareResult(BaseModel):
+    products:              list[DeckersProduct]
+    matrix:                list[ComparisonRow]
+    recommended_winner:    str
+    recommendation_reason: str
+
+
+# ── Product Recommendations ───────────────────────────────────────────────────
+
+class RecommendRequest(BaseModel):
+    based_on_product_id: Optional[str]   = None
+    budget_max:          Optional[float] = None
+    activity:            Optional[str]   = None   # "running" | "hiking" | "casual" | "comfort"
+    season:              Optional[str]   = None   # "spring" | "summer" | "fall" | "winter"
+    gender:              Optional[str]   = None   # "men" | "women" | "unisex"
+    customer_segment:    Optional[str]   = None   # "athlete" | "outdoor" | "casual" | "premium"
+
+
+class RecommendedProduct(BaseModel):
+    product:       DeckersProduct
+    score:         float
+    match_reasons: list[str]
+
+
+class RecommendResult(BaseModel):
+    based_on:        Optional[str]
+    recommendations: list[RecommendedProduct]
+    context_summary: str
