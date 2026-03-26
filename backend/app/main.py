@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.app.routers import datasets, requests, health
-from backend.app.routers import domains, masking, synthetic, jobs, lineage, recommendations
+from backend.app.routers import domains, masking, synthetic, jobs, lineage, recommendations, agents
 
 app = FastAPI(
     title="TDM Deckers API",
@@ -13,7 +13,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost:8501"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -27,3 +27,4 @@ app.include_router(synthetic.router, prefix="/synthetic", tags=["synthetic"])
 app.include_router(jobs.router,      prefix="/jobs",      tags=["jobs"])
 app.include_router(lineage.router,         prefix="/lineage",      tags=["lineage"])
 app.include_router(recommendations.router, prefix="/products",     tags=["recommendations"])
+app.include_router(agents.router,         prefix="/agents",        tags=["agents"])

@@ -116,6 +116,15 @@ DQ_RULES: dict[str, list] = {
         CompletenessCheck("name"),
         UniquenessCheck("product_id"),
     ],
+    "payment": [
+        CompletenessCheck("payment_id"),
+        CompletenessCheck("order_id"),
+        CompletenessCheck("amount"),
+        CompletenessCheck("status"),
+        UniquenessCheck("payment_id"),
+        ValidityCheck("status", r"^(CAPTURED|REFUNDED|DECLINED|PENDING)$"),
+        ValidityCheck("amount", r"^\d+(\.\d+)?$"),
+    ],
 }
 
 

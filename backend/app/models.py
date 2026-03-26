@@ -12,7 +12,7 @@ def _now() -> str:
 
 # ── Shared ────────────────────────────────────────────────────────────────────
 
-SUPPORTED_DOMAINS = ["customer", "order", "product", "inventory", "loyalty"]
+SUPPORTED_DOMAINS = ["customer", "order", "product", "inventory", "loyalty", "payment"]
 SUPPORTED_ENVS    = ["dev", "staging", "prod"]
 
 
@@ -35,10 +35,12 @@ class DatasetList(BaseModel):
 # ── Domains ───────────────────────────────────────────────────────────────────
 
 class DomainField(BaseModel):
-    name:     str
-    type:     str
-    pii:      bool = False
-    nullable: bool = True
+    name:              str
+    type:              str
+    pii:               bool = False
+    nullable:          bool = True
+    compliance_tags:   list[str] = []       # e.g. ["GDPR", "CCPA", "PCI"]
+    masking_strategy:  str | None = None    # default strategy hint
 
 
 class Domain(BaseModel):
@@ -160,8 +162,9 @@ class JobRun(BaseModel):
 
 
 class JobRunList(BaseModel):
-    runs:  list[JobRun]
-    total: int
+    runs:   list[JobRun]
+    total:  int
+    source: str = "stub"   # "live" | "stub" — indicates whether data is from Databricks
 
 
 class JobTriggerRequest(BaseModel):

@@ -1,355 +1,204 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working in this repository.
 
-# Project: tdm-deckers
+## Project: TDM Platform — Deckers Brands
 
-## Goal
-Build an enterprise TDM platform for retail on Databricks + AWS.
+Enterprise Test Data Management platform for retail on Databricks + AWS.
+Stack: FastAPI backend · Next.js + Streamlit frontends · Databricks/Delta/Unity Catalog · AWS S3/IAM.
 
-## Core capabilities
-- Source onboarding for retail domains: customer, order, product, inventory, loyalty
-- Sensitive data masking/tokenization
-- Synthetic data generation for lower environments
-- Data subsetting with referential integrity
-- Test data request APIs
-- Auditability and role-based access
-- Data cataloging and lineage using Unity Catalog
-- Frontend for request, approval, dataset browsing, and environment release status
-
-## Preferred stack
-- Python, PySpark, Databricks SQL
-- Databricks Asset Bundles (declarative automation)
-- FastAPI backend
-- React/Next.js frontend
-- AWS S3 for staged data
-- Terraform only if needed
+---
 
 ## Repository Structure
 
 ```
-backend/
-  app/
-    main.py          FastAPI entry point — mounts all routers
-    models.py        Pydantic models (Dataset, DataRequest, enums)
-    connection.py    AWS + Databricks client factory
-    routers/
-      health.py      GET /health
-      datasets.py    GET /datasets, GET /datasets/{id}
-      requests.py    POST/GET/PATCH /requests
-  tests/
-  requirements.txt   fastapi, uvicorn, pydantic, databricks-sdk, boto3, pytest
-
-databricks/
-  bundles/
-    databricks.yml   DAB config — jobs, clusters, dev/staging/prod targets
-  notebooks/
-    explore_source.py  Exploration notebook for bronze/silver tables
-  src/
-    ingest.py        S3 → Bronze Delta (per domain)
-    mask.py          SHA-256 tokenization + redaction of PII fields
-    synthetic.py     Fake record generation per domain
-    subset.py        Referentially consistent subsetting anchored on customer IDs
-  tests/
-    test_mask.py
-    test_synthetic.py
-
-frontend/
-  src/
-    pages/
-      index.tsx      Dataset browser
-      requests.tsx   Test data request form
-    components/
-      DatasetCard.tsx
-  .env.local.example
-  package.json       Next.js 14 + TypeScript
-
-infra/
-  aws/
-    main.tf          AWS provider config
-    s3.tf            Staged data S3 bucket (versioned + encrypted)
-    iam.tf           IAM policy for Databricks → S3 access
-  databricks/
-    workspace.tf     Databricks provider + Unity Catalog stubs
-
-docs/
+aws-adb-git/
+├── backend/
+│   ├── app/
+│   │   ├── main.py            FastAPI entry point — mounts all routers
+│   │   ├── models.py          All Pydantic models (DomainField has compliance_tags)
+│   │   ├── config.py          Settings via pydantic-settings (@lru_cache)
+│   │   ├── connectors.py      FastAPI dependency factories (Databricks, S3)
+│   │   ├── agents/
+│   │   │   ├── catalog_agent.py   Claude-powered catalog Q&A
+│   │   │   └── dq_agent.py        DQ run summariser using Claude
+│   │   └── routers/
+│   │       ├── health.py          GET /health
+│   │       ├── datasets.py        GET /datasets/
+│   │       ├── domains.py         GET /domains/ (compliance_tags on DomainField)
+│   │       ├── requests.py        POST/GET/PATCH /requests/
+│   │       ├── masking.py         POST/GET/PUT/DELETE /masking/policies
+│   │       ├── synthetic.py       POST/GET/PATCH /synthetic/requests
+│   │       ├── jobs.py            GET/POST /jobs/ (source: live|stub field)
+│   │       ├── lineage.py         GET /lineage/{domain}
+│   │       ├── recommendations.py GET/POST /products/ (compare + recommend)
+│   │       └── agents.py          POST /agents/catalog, POST /agents/dq
+│   └── tests/
+│       ├── conftest.py            Shared fixtures + autouse state reset
+│       ├── test_datasets.py
+│       ├── test_domains.py
+│       ├── test_jobs.py
+│       ├── test_masking.py
+│       ├── test_requests.py
+│       ├── test_synthetic.py
+│       ├── test_recommendations.py
+│       ├── test_guardrails.py     @guardrail PII leakage tests
+│       └── test_compliance.py     @guardrail compliance tag tests
+│
+├── databricks/
+│   ├── src/
+│   │   ├── ingest.py          S3 → Bronze Delta
+│   │   ├── mask.py            SHA-256 tokenisation + redaction (PII_FIELDS dict)
+│   │   ├── transform.py       Bronze → Silver (domain transforms + lineage metadata)
+│   │   ├── quality.py         DQ checks: CompletenessCheck, UniquenessCheck, ValidityCheck
+│   │   ├── synthetic.py       Fake record generators (customer, order, payment)
+│   │   ├── subset.py          Referential-integrity-preserving subsetting
+│   │   ├── catalog.py         Unity Catalog registration
+│   │   ├── pipeline.py        Full orchestrator (ingest→DQ→mask→transform→catalog)
+│   │   └── utils.py           table_name() helper
+│   └── tests/
+│       ├── conftest.py            Shared local SparkSession fixture
+│       ├── test_mask.py
+│       ├── test_pipeline.py
+│       ├── test_quality.py
+│       ├── test_synthetic.py
+│       ├── test_transform.py
+│       └── test_guardrails.py     @guardrail PySpark PII guardrails
+│
+├── frontend/                  Next.js 14 + TypeScript + Tailwind (original frontend)
+│   └── src/pages/             index, catalog, compare, jobs, lineage, requests, admin
+│
+├── frontend_py/               Streamlit Python dashboard
+│   ├── app.py                 Entry point (auth check + sidebar)
+│   ├── requirements.txt       streamlit, requests, pandas, plotly, anthropic
+│   ├── .streamlit/config.toml Brand theme (indigo #4F46E5)
+│   ├── lib/
+│   │   ├── api_client.py      HTTP wrapper around FastAPI backend
+│   │   ├── auth.py            Session-state login (demo accounts)
+│   │   └── theme.py           Colour constants + STATUS_COLORS
+│   └── pages/
+│       ├── 1_Dashboard.py     KPI cards + recent jobs/requests
+│       ├── 2_Data_Catalog.py  Domain schemas + PII badges + compliance tags
+│       ├── 3_Jobs.py          Live job runs + auto-refresh (source indicator)
+│       ├── 4_Requests.py      Submit + approve data requests
+│       ├── 5_Compare.py       Deckers product comparator + recommendations
+│       ├── 6_Security.py      IAM, connections, red-flag detection, compliance
+│       ├── 7_E2E_Flow.py      Pipeline architecture explainer
+│       └── 8_Agents.py        Catalog + DQ monitor agent chat UI
+│
+├── mcp_server/
+│   ├── server.py              FastMCP server exposing TDM as MCP tools
+│   └── requirements.txt       mcp[cli], httpx
+│
+├── infra/
+│   ├── aws/                   Terraform: S3, IAM
+│   └── databricks/            Terraform: workspace, Unity Catalog stubs
+│
+├── pytest.ini                 Test markers: unit, integration, databricks, guardrail
+└── .claude/CLAUDE.md          ← this file
 ```
 
-## Development Setup
-
-```bash
-# Backend
-pip install -r backend/requirements.txt
-cp .env.example .env          # fill in DATABRICKS_HOST and DATABRICKS_TOKEN
-aws configure                 # set AWS credentials (stored in ~/.aws/credentials)
-
-# Frontend
-cd frontend && npm install
-```
+---
 
 ## Commands
 
 ```bash
-# Verify AWS + Databricks connections
-python backend/app/connection.py
-
-# Run FastAPI server
+# FastAPI backend
+pip install -r backend/requirements.txt
 uvicorn backend.app.main:app --reload --port 8000
-# API docs: http://localhost:8000/docs
+# Docs: http://localhost:8000/docs
 
-# Run backend tests
-pytest backend/tests/ -v
+# Streamlit dashboard
+pip install -r frontend_py/requirements.txt
+streamlit run frontend_py/app.py
+# App: http://localhost:8501
 
-# Run Databricks pipeline tests (requires pyspark)
-pytest databricks/tests/ -v
-
-# Run frontend dev server
+# Next.js frontend
 cd frontend && npm install && npm run dev
 # App: http://localhost:3000
 
-# Deploy Databricks Asset Bundle
+# Backend tests
+pytest backend/tests/ -v
+
+# Guardrail tests only
+pytest backend/tests/ -v -m guardrail
+
+# Databricks/PySpark tests
+pytest databricks/tests/ -v -m databricks
+
+# MCP server
+pip install -r mcp_server/requirements.txt
+mcp run mcp_server/server.py
+
+# Databricks bundle deploy
 databricks bundle deploy --target dev
 
 # Terraform (AWS infra)
 cd infra/aws && terraform init && terraform plan -var="env=dev"
 ```
 
-## Connections (`backend/app/connection.py`)
+---
 
-Single entry point for all platform clients:
+## Key Design Decisions
 
-```python
-from backend.app.connection import get_databricks_client, get_aws_session, get_s3_client
+### Compliance tags on DomainField
+`DomainField` has `compliance_tags: list[str]` (e.g. `["GDPR", "CCPA"]`) and
+`masking_strategy: str | None`. Known tags: GDPR, CCPA, PCI, HIPAA, SOC2.
 
-w   = get_databricks_client()   # Databricks WorkspaceClient
-s3  = get_s3_client()           # boto3 S3 client
-ses = get_aws_session()         # boto3 Session (for any AWS service)
-```
+### Job status sync (source field)
+`GET /jobs/` returns `source: "live" | "stub"`. Streamlit shows a warning banner
+when `source == "stub"` (Databricks credentials not configured).
 
-### Databricks
-Credentials from `.env`:
-- `DATABRICKS_HOST` — workspace URL (`https://dbc-8402cc2e-6182.cloud.databricks.com`)
-- `DATABRICKS_TOKEN` — personal access token
+### Medallion architecture
+- Bronze = raw CSV/Parquet from S3, schema-on-read
+- Silver = masked + transformed + `_tdm_*` lineage columns (pipeline_run_id, ingested_at, masking_applied)
+- Gold = provision-ready curated outputs
 
-### AWS
-Credentials from `~/.aws/credentials` (IAM user: `claude-adb-tdm-git`, Account: `910445327255`):
-- Default region: `us-east-1` (override via `AWS_REGION` in `.env`)
+### Masking
+SHA-256 hash is deterministic — same input always produces same output, preserving
+join stability across environments.
 
-## Non-functional rules
-- Always use env vars or profiles for credentials — never commit secrets
+### Stub-first design
+All API endpoints degrade gracefully to in-memory stubs when Databricks/AWS
+credentials are absent — enabling full local development.
+
+---
+
+## Domains
+
+| Domain | PII Fields | Compliance |
+|---|---|---|
+| customer | first_name, last_name, email, phone, ssn, address | GDPR, CCPA, HIPAA (ssn) |
+| order | customer_id, billing_address, shipping_address | GDPR, CCPA |
+| product | none | — |
+| inventory | none | — |
+| loyalty | customer_id, email | GDPR, CCPA |
+| payment | customer_id, card_last4 | GDPR, CCPA, PCI |
+
+---
+
+## AWS Configuration
+
+- Account: `910445327255`
+- Region: `us-east-1`
+- IAM role: `tdm-deckers-uc-access` (Databricks → S3 access)
+- IAM user: `claude-adb-tdm-git` (CI/CD only)
+- S3 bucket: `tdm-deckers-staged-dev`
+
+## Databricks Configuration
+
+- Workspace: `https://dbc-8402cc2e-6182.cloud.databricks.com`
+- Catalog: `tdm_catalog`
+- Dev schema: `tdm_dev`
+- Staging schema: `tdm_staging`
+
+---
+
+## Non-functional Rules
+
+- Never commit credentials — use `.env` (gitignored) and `~/.aws/credentials`
 - Keep modules small and single-purpose
-- Add tests for transformation and API code
-- Update README when new modules are added
-
-## Development Context
-- **Remote**: `https://github.com/pratikpdp99-lab/aws-adb-git.git`
-- **Primary branch**: `main`
-
-# Project: tdm-deckers
-
-## Purpose
-Build an enterprise-grade Test Data Management (TDM) platform for retail using Databricks, AWS, GitHub, and a modern frontend.
-
-The platform should support masked data provisioning, synthetic data generation, subsetting, referential integrity, test data request workflows, auditability, lineage, and data cataloging.
-
-## Business Context
-This project is for a retail-oriented TDM platform. Typical business domains include:
-- customer
-- order
-- product
-- inventory
-- store
-- loyalty
-- pricing
-- promotion
-- shipment
-- payment
-
-The platform should support lower environments such as:
-- dev
-- qa
-- uat
-- perf
-
-## Core Capabilities
-1. Ingest source retail data from AWS S3 and other sources
-2. Profile and classify sensitive fields
-3. Apply masking and tokenization rules
-4. Generate synthetic test data for selected domains
-5. Create subset datasets while preserving referential integrity
-6. Provision approved datasets to target environments
-7. Track lineage and metadata using Databricks Unity Catalog
-8. Expose APIs for data request and provisioning workflow
-9. Provide a frontend for request, approval, job tracking, and dataset browsing
-10. Maintain audit logs and role-aware access
-
-## Preferred Technology Stack
-### Data Platform
-- Databricks
-- PySpark
-- Delta Lake
-- Unity Catalog
-- Databricks SQL
-- Databricks Jobs or Databricks Asset Bundles
-
-### Cloud
-- AWS
-- S3
-- IAM
-- Secrets Manager if needed
-
-### Backend
-- Python
-- FastAPI
-- Pydantic
-- SQLAlchemy only if truly needed
-- boto3
-- databricks SDK or connector where appropriate
-
-### Frontend
-- React
-- Next.js preferred
-- TypeScript
-- Tailwind CSS
-- clean enterprise UX
-
-### DevOps
-- GitHub
-- GitHub Actions
-- environment-driven configuration
-- no hardcoded secrets
-
-## Authentication and Environment Rules
-- Never hardcode credentials, tokens, URLs, or secrets
-- Use environment variables, AWS named profiles, and Databricks profiles
-- Assume AWS profile name is `deckers-dev` unless changed in config
-- Use config files and `.env.example`, never commit live secrets
-- Keep `.gitignore` updated for secret-bearing files
-
-## Databricks Design Expectations
-- Use medallion-like layering where useful:
-  - bronze = raw or landed
-  - silver = standardized and masked
-  - gold = provision-ready curated TDM outputs
-- Register important datasets in Unity Catalog
-- Favor transformations that preserve lineage visibility in Databricks
-- Organize jobs, notebooks, and code in a deployable project layout
-- Prefer modular Python packages over large notebooks when possible
-
-## TDM Design Principles
-- Preserve referential integrity across related datasets
-- Support both masked production-like data and fully synthetic data
-- Make masking deterministic where business use requires stable joins
-- Support domain-based extraction and subset filtering
-- Make provisioning reproducible and auditable
-- Allow policy-driven field handling:
-  - mask
-  - tokenize
-  - null out
-  - synthesize
-  - retain if non-sensitive and approved
-
-## API Design Expectations
-The backend should eventually support endpoints for:
-- health
-- list domains
-- profile dataset
-- classify columns
-- submit masking policy
-- request subset dataset
-- request synthetic dataset
-- start provisioning job
-- list job status
-- list available datasets
-- fetch lineage summary
-- fetch audit events
-
-Use clean request and response models.
-Keep API contracts consistent and typed.
-
-## Frontend Expectations
-The frontend should eventually include:
-- landing/dashboard page
-- dataset catalog page
-- request test data form
-- masking policy review page
-- job status page
-- lineage and catalog page
-- admin/settings page
-
-Design should feel like an enterprise internal platform:
-- clear navigation
-- low clutter
-- status visibility
-- auditability
-- searchable lists and tables
-
-## Code Quality Rules
-- Keep modules small and focused
-- Add docstrings for non-trivial logic
-- Add type hints
-- Add tests for backend services and important transformation logic
-- Prefer readable code over overly clever abstractions
-- Do not create large monolithic files
-- Update README files when creating new modules
-
-## Testing Expectations
-Add tests for:
-- masking logic
-- synthetic data generation rules
-- referential integrity checks
-- API request validation
-- service-layer behavior
-- config parsing
-
-## Deliverable Style
-When asked to generate code:
-- first inspect existing project structure
-- follow the repository conventions already present
-- create minimal but working code
-- add TODO comments only where external setup is required
-- provide local run instructions in README
-- do not invent fake secrets or fake production values
-
-## Initial Build Roadmap
-Phase 1:
-- scaffold repository
-- create configuration model
-- add backend skeleton
-- add frontend skeleton
-- add Databricks module skeleton
-- add sample retail domain metadata
-
-Phase 2:
-- build masking engine
-- build synthetic data generator
-- build subset engine
-- build S3 integration
-- build Databricks ingestion and Delta write flows
-
-Phase 3:
-- build request workflow APIs
-- build frontend pages
-- connect frontend to backend
-- add job tracking and audit model
-
-Phase 4:
-- add Unity Catalog integration, lineage views, and deployment workflows
-
-## Important Constraints
-- Do not delete user-authored files unless explicitly asked
-- Do not refactor the whole project unless requested
-- Do not expose secrets in logs or sample code
-- Do not assume production access
-- Use mock or sample data where real data is unavailable
-
-## Preferred Working Pattern
-When implementing a major feature:
-1. inspect repository structure
-2. propose touched files
-3. implement code
-4. add tests
-5. update README or usage instructions
-
-## Primary Goal
-Help build a practical, extensible, enterprise TDM platform that can be demoed, evolved, and deployed incrementally.
+- All PII fields must have `compliance_tags` in `DomainField`
+- Add `@pytest.mark.guardrail` to all PII/compliance tests
+- Stub endpoints must always return `source: "stub"` in `JobRunList`
+- GitHub remote: `https://github.com/pratikpdp99-lab/aws-adb-git.git`

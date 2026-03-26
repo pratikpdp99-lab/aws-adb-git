@@ -49,10 +49,18 @@ def transform_product(df: DataFrame) -> DataFrame:
     )
 
 
+def transform_payment(df: DataFrame) -> DataFrame:
+    return (
+        df.withColumn("amount", F.col("amount").cast("double"))
+          .withColumn("created_at", F.to_timestamp(F.col("created_at")))
+    )
+
+
 _TRANSFORMS = {
     "customer": transform_customer,
     "order":    transform_order,
     "product":  transform_product,
+    "payment":  transform_payment,
 }
 
 

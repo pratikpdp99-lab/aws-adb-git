@@ -12,7 +12,7 @@ def test_list_domains():
     assert r.status_code == 200
     body = r.json()
     assert "domains" in body
-    assert body["total"] == 5
+    assert body["total"] == 6
 
 
 def test_list_domains_filter_pii():

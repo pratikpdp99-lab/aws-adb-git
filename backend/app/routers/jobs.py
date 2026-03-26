@@ -69,7 +69,7 @@ def list_jobs(
     Returns live data from Databricks when configured, stub data otherwise.
     """
     if not db:
-        return JobRunList(runs=_STUB_RUNS, total=len(_STUB_RUNS))
+        return JobRunList(runs=_STUB_RUNS, total=len(_STUB_RUNS), source="stub")
 
     try:
         runs = []
@@ -85,7 +85,7 @@ def list_jobs(
                 start_time=_ms_to_iso(run.start_time),
                 end_time=_ms_to_iso(run.end_time),
             ))
-        return JobRunList(runs=runs, total=len(runs))
+        return JobRunList(runs=runs, total=len(runs), source="live")
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Databricks API error: {e}")
 

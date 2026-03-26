@@ -5,6 +5,7 @@ Generates statistically similar but fully fake records for a given domain schema
 
 import random
 import string
+import uuid
 from datetime import date, timedelta
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.types import StructType
@@ -40,6 +41,19 @@ _GENERATORS = {
         "order_date":  random_date(),
         "total_amount": round(random.uniform(10.0, 500.0), 2),
         "status":      random.choice(["PLACED", "SHIPPED", "DELIVERED", "CANCELLED"]),
+    },
+    "payment": lambda: {
+        "payment_id":     str(uuid.uuid4()),
+        "order_id":       f"ORD-{random.randint(100000, 999999)}",
+        "customer_id":    f"CUST-{random.randint(100000, 999999)}",
+        "payment_method": random.choice(["credit_card", "debit_card", "paypal", "apple_pay", "gift_card"]),
+        "card_last4":     str(random.randint(1000, 9999)),
+        "card_network":   random.choice(["VISA", "MASTERCARD", "AMEX", "DISCOVER"]),
+        "amount":         round(random.uniform(10.0, 500.0), 2),
+        "currency":       "USD",
+        "status":         random.choice(["CAPTURED", "REFUNDED", "DECLINED", "PENDING"]),
+        "gateway":        random.choice(["stripe", "braintree", "adyen", "paypal"]),
+        "created_at":     random_date(2022),
     },
 }
 

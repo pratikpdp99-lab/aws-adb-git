@@ -14,6 +14,7 @@ PII_FIELDS = {
     "customer": ["email", "phone", "ssn", "first_name", "last_name", "address"],
     "order":    ["customer_id", "billing_address", "shipping_address"],
     "loyalty":  ["customer_id", "email"],
+    "payment":  ["customer_id", "card_last4"],
 }
 
 
